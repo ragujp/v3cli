@@ -1,0 +1,84 @@
+name: client-build-and-release
+
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch name'
+        required: true
+        default: 'main'
+        
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Check tagged branch
+        run: |
+          BRANCHS=$(git branch --contains ${{ github.ref_name }})
+          set -- $BRANCHS
+          for BRANCH in $BRANCHS ; do
+            if [[ "$BRANCH" == "main" ]]; then
+              exit 0
+            fi
+          done
+          exit 1
+
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        id: setup-go
+        with:
+          go-version-file: "go.mod"
+
+      - name: Download Go modules
+        shell: bash
+        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
+        run: go mod download
+
+      - name: Build the project
+        run: |
+          if [ "${{ matrix.goos }}" == "windows" ]; then
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o inonius_v3cli-${{ matrix.goos }}-${{ matrix.goarch }}.exe
+          else
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o inonius_v3cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          fi
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: inonius_v3cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            inonius_v3cli-${{ matrix.goos }}-${{ matrix.goarch }}
+            inonius_v3cli-${{ matrix.goos }}-${{ matrix.goarch }}.exe
+
+#      - name: Bump version and push tag
+#        id: bump
+#        uses: anothrNick/github-tag-action@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          WITH_V: false
+#          DEFAULT_BUMP: patch
+
+      - name: create release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: ${{ github.tag_name }}
+          tag_name: ${{ github.tag_name }}
+          draft: false
+          prerelease: false
+          files: |
+            inonius_v3cli-*
