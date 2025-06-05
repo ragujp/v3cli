@@ -33,23 +33,11 @@ jobs:
             goarch: amd64
           - goos: windows
             goarch: arm64
-          - goos: windows
-            goarch: arm
-            goarm: 6
-          - goos: windows
-            goarch: arm
-            goarm: 7
           # --- macOS ---
           - goos: darwin
             goarch: amd64
           - goos: darwin
             goarch: arm64
-          - goos: darwin
-            goarch: arm
-            goarm: 6
-          - goos: darwin
-            goarch: arm
-            goarm: 7
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v3
