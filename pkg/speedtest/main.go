@@ -10,6 +10,7 @@ import (
 	"math"
 	"mime/multipart"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -91,6 +92,14 @@ func doSpeedTest(c clientTypes.Client, ctx *context.Context, logger *slog.Logger
 			var extra defs.TelemetryExtra
 
 			extra.ServerName = currentServer.Name
+			if marshaledExtra, err := json.Marshal(map[string]interface{}{
+				"arch": runtime.GOARCH, // Arch情報を追加
+			}); err == nil {
+				extra.Extra = string(marshaledExtra)
+			} else {
+				logger.Error("Failed to marshal extra data:", "error", err)
+				return nil, err
+			}
 
 			telemetryServer.Server = currentServer.Server
 			telemetryServer.Path = "/results/telemetry.php"
@@ -205,8 +214,9 @@ func sendTelemetry(telemetryServer defs.TelemetryServer, download, upload, pingV
 		return "", err
 	}
 	req.Header.Set("Content-Type", wr.FormDataContentType())
-	req.Header.Set("User-Agent", "inonius_v3cli")
+	req.Header.Set("User-Agent", fmt.Sprintf("inonius_v3cli_%s", runtime.GOARCH))
 
+	fmt.Println("telemetry body", buf.String())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Debugf("Error when making HTTP request: %s", err)
