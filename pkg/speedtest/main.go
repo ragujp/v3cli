@@ -92,14 +92,6 @@ func doSpeedTest(c clientTypes.Client, ctx *context.Context, logger *slog.Logger
 			var extra defs.TelemetryExtra
 
 			extra.ServerName = currentServer.Name
-			if marshaledExtra, err := json.Marshal(map[string]interface{}{
-				"arch": runtime.GOARCH, // Arch情報を追加
-			}); err == nil {
-				extra.Extra = string(marshaledExtra)
-			} else {
-				logger.Error("Failed to marshal extra data:", "error", err)
-				return nil, err
-			}
 
 			telemetryServer.Server = currentServer.Server
 			telemetryServer.Path = "/results/telemetry.php"
